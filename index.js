@@ -1,3 +1,5 @@
+const { getOneLatestMovie } = require("./dbController");
+
 const JSSoup = require("jssoup").default;
 const axios = require("axios").default;
 
@@ -229,15 +231,26 @@ async function getMovies(
   return Promise.resolve(movies);
 }
 
-// getMovies(
-//   BASE_URL,
-//   MOVIE_THISWEEK,
-//   QUERY_STRING,
-//   "1",
-//   getMovieIntroduction
-// ).then((res) => {
-//   console.log(res);
-// });
+async function getSingleLatestMovie(
+  BASE_URL,
+  SUB_URL,
+  QUERY_STRING,
+  pageNumber,
+  callBack
+) {
+  const result = await getMovies(
+    BASE_URL,
+    SUB_URL,
+    QUERY_STRING,
+    pageNumber,
+    callBack
+  ).then((res) => {
+    return res;
+  });
+  return result.sort((a, b) => a.releaseDate < b.releaseDate)[0];
+}
+
+const date = 1605830400000;
 
 module.exports = {
   BASE_URL,
@@ -246,5 +259,6 @@ module.exports = {
   MOVIE_THISWEEK,
   QUERY_STRING,
   getMovies,
+  getSingleLatestMovie,
   getMovieIntroduction,
 };

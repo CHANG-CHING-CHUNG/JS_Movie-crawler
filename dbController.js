@@ -1,6 +1,6 @@
 const { MongoClient } = require("mongodb");
 const url = require("./dbConnector");
-const dbName = "test";
+const dbName = "john-test";
 
 const dbController = {
   async insertMovieInTheatersToDB(moviesDocument) {
@@ -18,7 +18,7 @@ const dbController = {
     } catch (err) {
       console.log(err.stack);
     } finally {
-      // await client.close();
+      await client.close();
     }
   },
   async insertMovieThisWeekToDB(moviesDocument) {
@@ -36,7 +36,7 @@ const dbController = {
     } catch (err) {
       console.log(err.stack);
     } finally {
-      // await client.close();
+      await client.close();
     }
   },
   async getMovieInTheaters(req, res) {
@@ -44,11 +44,11 @@ const dbController = {
     try {
       await client.connect();
       const db = client.db(dbName);
-      const col = db.collection("movies");
+      const col = db.collection("movieIntheaters");
       const options = {
         sort: { releaseDate: -1 },
       };
-      const cursor = col.find(null, options);
+      const cursor = await col.find(null, options);
       // print a message if no documents were found
       if ((await cursor.count()) === 0) {
         console.log("No documents found!");
@@ -70,6 +70,27 @@ const dbController = {
         console.log("No documents found!");
       }
       res.json(await cursor.toArray());
+    } finally {
+      await client.close();
+    }
+  },
+  async getOneLatestMovie(req, res) {
+    const client = new MongoClient(url, { useUnifiedTopology: true });
+    try {
+      await client.connect();
+      const db = client.db(dbName);
+      const col = db.collection("movies");
+      const options = {
+        sort: { releaseDate: -1 },
+      };
+      const cursor = await col.find(null, options);
+      // print a message if no documents were found
+      if ((await cursor.count()) === 0) {
+        console.log("No documents found!");
+      }
+      const result = await cursor.toArray();
+      // console.log(result.map((item) => item.name));
+      return result;
     } finally {
       await client.close();
     }
