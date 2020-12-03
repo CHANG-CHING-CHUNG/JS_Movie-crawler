@@ -14,7 +14,7 @@ const dbController = {
 
       const options = { ordered: true };
       const result = await col.insertMany(moviesDocument, options);
-      console.log(`${result.insertedCount} documents were inserted`);
+      console.log(`${result.insertedCount} movies were inserted`);
     } catch (err) {
       console.log(err.stack);
     } finally {
@@ -28,11 +28,11 @@ const dbController = {
       console.log("Connected correctly to server");
       const db = client.db(dbName);
 
-      const col = db.collection("movies");
+      const col = db.collection("movies_thisweek");
 
       const options = { ordered: true };
       const result = await col.insertMany(moviesDocument, options);
-      console.log(`${result.insertedCount} documents were inserted`);
+      console.log(`${result.insertedCount} movies were inserted`);
     } catch (err) {
       console.log(err.stack);
     } finally {
@@ -74,12 +74,17 @@ const dbController = {
       await client.close();
     }
   },
-  async getOneLatestMovie(req, res) {
+  async getOneLatestMovie(type) {
     const client = new MongoClient(url, { useUnifiedTopology: true });
     try {
       await client.connect();
       const db = client.db(dbName);
-      const col = db.collection("movies");
+      const col =
+        type === "current"
+          ? db.collection("movies")
+          : type === "future"
+          ? db.collection("movies_thisweek")
+          : null;
       const options = {
         sort: { releaseDate: -1 },
       };
@@ -91,6 +96,44 @@ const dbController = {
       const result = await cursor.toArray();
       // console.log(result.map((item) => item.name));
       return result;
+    } finally {
+      await client.close();
+    }
+  },
+  async getLatestTenMoviesInTheaters() {
+    const client = new MongoClient(url, { useUnifiedTopology: true });
+    try {
+      await client.connect();
+      const db = client.db(dbName);
+      const col = db.collection("movies");
+      const options = {
+        sort: { releaseDate: -1 },
+      };
+      const cursor = await col.find(null, options).limit(10);
+      // print a message if no documents were found
+      if ((await cursor.count()) === 0) {
+        console.log("No documents found!");
+      }
+      return await cursor.toArray();
+    } finally {
+      await client.close();
+    }
+  },
+  async getLatestTenMoviesThisWeek() {
+    const client = new MongoClient(url, { useUnifiedTopology: true });
+    try {
+      await client.connect();
+      const db = client.db(dbName);
+      const col = db.collection("movies_thisweek");
+      const options = {
+        sort: { releaseDate: -1 },
+      };
+      const cursor = await col.find(null, options).limit(10);
+      // print a message if no documents were found
+      if ((await cursor.count()) === 0) {
+        console.log("No documents found!");
+      }
+      return await cursor.toArray();
     } finally {
       await client.close();
     }
