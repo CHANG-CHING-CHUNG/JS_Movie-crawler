@@ -16,6 +16,7 @@
     "express": "^4.17.1",
     "jssoup": "0.0.12",
     "mongodb": "^3.6.3",
+    "node-cron": "^2.0.3",
     "nodemailer": "^6.4.16",
     "nodemon": "^2.0.6"
   }

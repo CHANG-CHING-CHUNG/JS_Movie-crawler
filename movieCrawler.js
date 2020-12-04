@@ -4,7 +4,7 @@ const JSSoup = require("jssoup").default;
 const axios = require("axios").default;
 
 const BASE_URL = "https://movies.yahoo.com.tw";
-const SUB_URL = "/movie_intheaters.html";
+const MOVIE_INTHEATERS = "/movie_intheaters.html";
 const COMMING_SOON_URL = "/movie_comingsoon.html";
 const MOVIE_THISWEEK = "/movie_thisweek.html";
 const QUERY_STRING = "?page=";
@@ -197,6 +197,32 @@ async function getOrganizedMovies(movieInfo, soup) {
   return finalResult;
 }
 
+async function getPageNumber(BASE_URL, SUB_URL, QUERY_STRING, pageNumber) {
+  const sourse = await getMovieHtml(
+    BASE_URL,
+    SUB_URL,
+    QUERY_STRING,
+    pageNumber
+  );
+  const soup = await new JSSoup(sourse);
+
+  const li = soup.find("div", "page_numbox").nextElement.findAll("li");
+
+  const PREVTXT = "prevtxt";
+  const NEXTTXT = "nexttxt";
+  const CLASS = "class";
+  let startIdx;
+  let endIdx;
+  li.forEach((item, i) => {
+    if (CLASS in item.attrs) {
+      if (item.attrs.class.search(PREVTXT) != -1) startIdx = i + 1;
+      if (item.attrs.class.search(NEXTTXT) != -1) endIdx = i;
+    }
+  });
+  const pageArr = li.slice(startIdx, endIdx).map((item) => item.text);
+  return pageArr;
+}
+
 async function htmlParser(
   BASE_URL,
   SUB_URL,
@@ -252,12 +278,12 @@ async function getSingleLatestMovie(
   return result.sort((a, b) => a.releaseDate < b.releaseDate)[0];
 }
 
-async function getLatestReleaseDate(SUB_URL, type) {
+async function getLatestReleaseDate(SUB_URL, type, pageNumber) {
   const latestMovie = await getSingleLatestMovie(
     BASE_URL,
     SUB_URL,
     QUERY_STRING,
-    "1",
+    pageNumber,
     getMovieIntroduction
   );
   const dbLatestMovie = await dbController.getOneLatestMovie(type);
@@ -267,12 +293,13 @@ async function getLatestReleaseDate(SUB_URL, type) {
   };
 }
 
-async function shouldUpdateMovie(SUB_URL, type) {
+async function shouldUpdateMovie(SUB_URL, type, pageNumber) {
+  console.log(pageNumber);
   const latestMovies = await getMovies(
     BASE_URL,
     SUB_URL,
     QUERY_STRING,
-    "1",
+    pageNumber,
     getMovieIntroduction
   ).then((res) => res.map((movie) => movie.name));
   const dbLatestMoviesInTheaters =
@@ -288,65 +315,122 @@ async function shouldUpdateMovie(SUB_URL, type) {
   const result = latestMovies.filter((movie) => {
     return !dbLatestMoviesInTheaters.includes(movie);
   });
-  console.log(result.length ? true : false);
 
   return result.length ? true : false;
 }
 
-async function getLatestMoviesFromYahoo(SUB_URL, type) {
-  if (shouldUpdateMovie(SUB_URL, type)) {
+async function getLatestMoviesFromYahoo(SUB_URL, type, pageNumber) {
+  if (!(await shouldUpdateMovie(SUB_URL, type, pageNumber))) return;
+  try {
     const {
       releaseDateFromYahoo,
       releaseDateFromDb,
-    } = await getLatestReleaseDate(SUB_URL, type);
-    try {
-      if (releaseDateFromYahoo < releaseDateFromDb) {
-        console.log("目前沒有最新電影資料能夠更新");
-        return;
-      }
-      const sortedMovies = await getMovies(
-        BASE_URL,
-        SUB_URL,
-        QUERY_STRING,
-        "1",
-        getMovieIntroduction
-      ).then((res) => {
-        return res.filter((movie) => movie.releaseDate > releaseDateFromDb);
-      });
-      console.log(sortedMovies.length);
-      if (!sortedMovies.length) {
-        console.log("目前沒有最新電影資料能夠更新");
-        return;
-      }
-      return type === "current"
-        ? await dbController.insertMovieInTheatersToDB(sortedMovies)
-        : type === "future"
-        ? dbController.insertMovieThisWeekToDB(sortedMovies)
-        : null;
-    } catch (error) {
-      console.log(error);
+    } = await getLatestReleaseDate(SUB_URL, type, pageNumber);
+    if (releaseDateFromYahoo < releaseDateFromDb) {
+      console.log("目前沒有最新電影資料能夠更新");
+      return false;
     }
+    const sortedMovies = await getMovies(
+      BASE_URL,
+      SUB_URL,
+      QUERY_STRING,
+      pageNumber,
+      getMovieIntroduction
+    ).then((res) => {
+      return res.filter((movie) => movie.releaseDate > releaseDateFromDb);
+    });
+    console.log(sortedMovies);
+    if (!sortedMovies.length) {
+      console.log("目前沒有最新電影資料能夠更新");
+      return false;
+    }
+    return type === "current"
+      ? await dbController.insertMovieInTheatersToDB(sortedMovies)
+      : type === "future"
+      ? dbController.insertMovieThisWeekToDB(sortedMovies)
+      : null;
+  } catch (error) {
+    console.log(error);
   }
 }
 
-async function getMoviesThisWeekFromYahoo() {}
-getLatestMoviesFromYahoo(MOVIE_THISWEEK, FUTURE);
+async function getMoviesNow() {
+  const pageNumberArr = await getPageNumber(
+    BASE_URL,
+    MOVIE_INTHEATERS,
+    QUERY_STRING,
+    "1"
+  );
+  for (let i = 0; i < pageNumberArr.length; i++) {
+    await getMovies(
+      BASE_URL,
+      MOVIE_INTHEATERS,
+      QUERY_STRING,
+      pageNumberArr[i],
+      getMovieIntroduction
+    ).then((res) => dbController.insertMovieInTheatersToDB(res));
+    console.log(pageNumberArr[i]);
+  }
+}
+async function getMoviesThisWeek() {
+  const pageNumberArr = await getPageNumber(
+    BASE_URL,
+    MOVIE_THISWEEK,
+    QUERY_STRING,
+    "1"
+  );
+  for (let i = 0; i < pageNumberArr.length; i++) {
+    console.log(pageNumberArr[i]);
+    await getMovies(
+      BASE_URL,
+      MOVIE_THISWEEK,
+      QUERY_STRING,
+      pageNumberArr[i],
+      getMovieIntroduction
+    ).then((res) => dbController.insertMovieThisWeekToDB(res));
+  }
+}
 
-// getMovies(
-//   BASE_URL,
-//   SUB_URL,
-//   QUERY_STRING,
-//   "1",
-//   getMovieIntroduction
-// ).then((res) => dbController.insertMovieThisWeekToDB(res));
+async function getMoviesThisWeekFromYahoo() {
+  const pageNumberArr = await getPageNumber(
+    BASE_URL,
+    MOVIE_THISWEEK,
+    QUERY_STRING,
+    "1"
+  );
+  for (let i = 0; i < pageNumberArr.length; i++) {
+    if (
+      !(await getLatestMoviesFromYahoo(
+        MOVIE_THISWEEK,
+        FUTURE,
+        pageNumberArr[i]
+      ))
+    )
+      break;
+    console.log(pageNumberArr[i]);
+  }
+}
+
+async function getMoviesInTheatersFromYahoo() {
+  const pageNumberArr = await getPageNumber(
+    BASE_URL,
+    MOVIE_INTHEATERS,
+    QUERY_STRING,
+    "1"
+  );
+  for (let i = 0; i < pageNumberArr.length; i++) {
+    if (
+      !(await getLatestMoviesFromYahoo(
+        MOVIE_INTHEATERS,
+        CURRENT,
+        pageNumberArr[i]
+      ))
+    )
+      break;
+    console.log(pageNumberArr[i]);
+  }
+}
 module.exports = {
-  BASE_URL,
-  SUB_URL,
-  COMMING_SOON_URL,
-  MOVIE_THISWEEK,
-  QUERY_STRING,
-  getMovies,
-  getLatestMoviesFromYahoo,
-  getSingleLatestMovie,
-  getMovieIntroduction,
+  getMoviesThisWeekFromYahoo,
+  getMoviesInTheatersFromYahoo,
 };

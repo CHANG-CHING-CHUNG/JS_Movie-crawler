@@ -1,6 +1,6 @@
 const { MongoClient } = require("mongodb");
 const url = require("./dbConnector");
-const dbName = "john-test";
+const dbName = "test";
 
 const dbController = {
   async insertMovieInTheatersToDB(moviesDocument) {
@@ -39,6 +39,24 @@ const dbController = {
       await client.close();
     }
   },
+  async insertGerneToDB(genre) {
+    const client = new MongoClient(url, { useUnifiedTopology: true });
+    try {
+      await client.connect();
+      console.log("Connected correctly to server");
+      const db = client.db(dbName);
+
+      const col = db.collection("movie_genres");
+
+      const options = { ordered: true };
+      const result = await col.insertMany(genre, options);
+      console.log(`${result.insertedCount} genre were inserted`);
+    } catch (err) {
+      console.log(err.stack);
+    } finally {
+      await client.close();
+    }
+  },
   async getMovieInTheaters(req, res) {
     const client = new MongoClient(url, { useUnifiedTopology: true });
     try {
@@ -70,6 +88,22 @@ const dbController = {
         console.log("No documents found!");
       }
       res.json(await cursor.toArray());
+    } finally {
+      await client.close();
+    }
+  },
+  async getAllMoviesInTheaters() {
+    const client = new MongoClient(url, { useUnifiedTopology: true });
+    try {
+      await client.connect();
+      const db = client.db(dbName);
+      const col = db.collection("movies");
+      const cursor = col.find();
+      // print a message if no documents were found
+      if ((await cursor.count()) === 0) {
+        console.log("No documents found!");
+      }
+      return await cursor.toArray();
     } finally {
       await client.close();
     }
