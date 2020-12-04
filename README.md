@@ -17,5 +17,5 @@
 此檔案會執行一個排程`cron.schedule`，每天的晚上11點會自動執行**getMoviesThisWeekFromYahoo** 與 **getMoviesInTheatersFromYahoo**，抓取最新電影資料。
 
 ### dbController.js
-**insertMovieThisWeekToDB**: 將 **getMoviesThisWeekFromYahoo** 得到的電影資料插入資料庫。
-**insertMovieInTheatersToDB**: 將 **getMoviesInTheatersFromYahoo** 得到的電影資料插入資料庫。
+**insertMovieThisWeekToDB**: 將 **getMoviesThisWeekFromYahoo** 得到的電影資料插入資料庫的本週新片表格。
+**insertMovieInTheatersToDB**: 將 **getMoviesInTheatersFromYahoo** 得到的電影資料插入資料庫的上映中表格。
