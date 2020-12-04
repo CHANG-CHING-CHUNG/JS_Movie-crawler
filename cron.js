@@ -6,8 +6,9 @@ const {
 const dbController = require("./dbController");
 
 console.log("每天23:00定時抓電影資料排程已啟動...");
-cron.schedule("00 23 * * *", () => {
-  console.log("running a task every day on 23:00");
-  getMoviesThisWeekFromYahoo();
-  getMoviesInTheatersFromYahoo();
+cron.schedule("40 23 * * *", async () => {
+  console.log("抓電影開始");
+  await getMoviesThisWeekFromYahoo();
+  await getMoviesInTheatersFromYahoo();
+  console.log("抓電影結束");
 });

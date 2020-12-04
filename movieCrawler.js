@@ -294,7 +294,6 @@ async function getLatestReleaseDate(SUB_URL, type, pageNumber) {
 }
 
 async function shouldUpdateMovie(SUB_URL, type, pageNumber) {
-  console.log(pageNumber);
   const latestMovies = await getMovies(
     BASE_URL,
     SUB_URL,
@@ -405,9 +404,10 @@ async function getMoviesThisWeekFromYahoo() {
         FUTURE,
         pageNumberArr[i]
       ))
-    )
+    ) {
+      console.log("沒有新的電影需要更新了。");
       break;
-    console.log(pageNumberArr[i]);
+    }
   }
 }
 
@@ -425,9 +425,10 @@ async function getMoviesInTheatersFromYahoo() {
         CURRENT,
         pageNumberArr[i]
       ))
-    )
+    ) {
+      console.log("沒有新的電影需要更新了。");
       break;
-    console.log(pageNumberArr[i]);
+    }
   }
 }
 module.exports = {
