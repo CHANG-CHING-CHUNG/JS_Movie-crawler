@@ -294,23 +294,12 @@ async function getLatestReleaseDate(SUB_URL, type, pageNumber) {
 }
 
 async function getMoviesNow() {
-<<<<<<< HEAD
 
   for (let i = 1; i <= pageNumber; i++) {
-=======
-  const pageNumberArr = await getPageNumber(
-    BASE_URL,
-    MOVIE_INTHEATERS,
-    QUERY_STRING,
-    "1"
-  );
-  for (let i = 0; i < pageNumberArr.length; i++) {
->>>>>>> c84692a5b1fc68c9ecf7fb4ee63747663c535285
     await getMovies(
       BASE_URL,
       MOVIE_INTHEATERS,
       QUERY_STRING,
-<<<<<<< HEAD
       i,
       getMovieIntroduction
     ).then((res) => dbController.insertMovieInTheatersToDB(res));
@@ -321,32 +310,11 @@ async function getMoviesThisWeek() {
 
   for (let i = 1; i <= pageNumber; i++) {
     console.log(i);
-=======
-      pageNumberArr[i],
-      getMovieIntroduction
-    ).then((res) => dbController.insertMovieInTheatersToDB(res));
-    console.log(pageNumberArr[i]);
-  }
-}
-async function getMoviesThisWeek() {
-  const pageNumberArr = await getPageNumber(
-    BASE_URL,
-    MOVIE_THISWEEK,
-    QUERY_STRING,
-    "1"
-  );
-  for (let i = 0; i < pageNumberArr.length; i++) {
-    console.log(pageNumberArr[i]);
->>>>>>> c84692a5b1fc68c9ecf7fb4ee63747663c535285
     await getMovies(
       BASE_URL,
       MOVIE_THISWEEK,
       QUERY_STRING,
-<<<<<<< HEAD
       i,
-=======
-      pageNumberArr[i],
->>>>>>> c84692a5b1fc68c9ecf7fb4ee63747663c535285
       getMovieIntroduction
     ).then((res) => dbController.insertMovieThisWeekToDB(res));
   }
@@ -377,48 +345,29 @@ async function shouldUpdateMovie(SUB_URL, type, pageNumber) {
   return result.length ? true : false;
 }
 
-<<<<<<< HEAD
 async function getLatestMoviesFromYahoo(SUB_URL, type, pageNumber) {
   console.log(SUB_URL, type, pageNumber);
-=======
-async function getLatestMoviesFromYahoo(SUB_URL, type, pageNumberArr) {
-  console.log(SUB_URL, type, pageNumberArr);
->>>>>>> c84692a5b1fc68c9ecf7fb4ee63747663c535285
   if (!(await shouldUpdateMovie(SUB_URL, type, "1"))) return;
   try {
     const {
       releaseDateFromYahoo,
       releaseDateFromDb,
     } = await getLatestReleaseDate(SUB_URL, type, "1");
-<<<<<<< HEAD
     console.log("release",releaseDateFromYahoo);
-=======
->>>>>>> c84692a5b1fc68c9ecf7fb4ee63747663c535285
     if (releaseDateFromYahoo < releaseDateFromDb) {
       console.log("目前沒有最新電影資料能夠更新");
       return false;
     }
-<<<<<<< HEAD
     for (let i = 1; i <= pageNumber; i++) {
       console.log(SUB_URL, "page", i);
-=======
-    for (let i = 0; i < pageNumberArr.length; i++) {
-      console.log(SUB_URL, "page", pageNumberArr[i]);
->>>>>>> c84692a5b1fc68c9ecf7fb4ee63747663c535285
       const sortedMovies = await getMovies(
         BASE_URL,
         SUB_URL,
         QUERY_STRING,
-<<<<<<< HEAD
         i,
         getMovieIntroduction
       ).then((res) => {
         console.log(res);
-=======
-        pageNumberArr[i],
-        getMovieIntroduction
-      ).then((res) => {
->>>>>>> c84692a5b1fc68c9ecf7fb4ee63747663c535285
         return res.filter((movie) => movie.releaseDate > releaseDateFromDb);
       });
       console.log(sortedMovies.map((movie) => movie.name));
@@ -442,7 +391,6 @@ async function getLatestMoviesFromYahoo(SUB_URL, type, pageNumberArr) {
 }
 
 async function getMoviesThisWeekFromYahoo() {
-<<<<<<< HEAD
   // const pageNumberArr = await getPageNumber(
   //   BASE_URL,
   //   MOVIE_THISWEEK,
@@ -460,25 +408,6 @@ async function getMoviesInTheatersFromYahoo() {
   //   "1"
   // );
   await getLatestMoviesFromYahoo(MOVIE_INTHEATERS, CURRENT, 100);
-=======
-  const pageNumberArr = await getPageNumber(
-    BASE_URL,
-    MOVIE_THISWEEK,
-    QUERY_STRING,
-    "1"
-  );
-  await getLatestMoviesFromYahoo(MOVIE_THISWEEK, FUTURE, pageNumberArr);
-}
-
-async function getMoviesInTheatersFromYahoo() {
-  const pageNumberArr = await getPageNumber(
-    BASE_URL,
-    MOVIE_INTHEATERS,
-    QUERY_STRING,
-    "1"
-  );
-  await getLatestMoviesFromYahoo(MOVIE_INTHEATERS, CURRENT, pageNumberArr);
->>>>>>> c84692a5b1fc68c9ecf7fb4ee63747663c535285
 }
 module.exports = {
   getMoviesThisWeekFromYahoo,
