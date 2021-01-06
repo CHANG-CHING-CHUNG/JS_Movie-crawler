@@ -124,6 +124,10 @@ function getMovieDirectorAndActors(soup) {
   };
 }
 
+function getMovieTrailer(soup) {
+  return soup.find("ul", "trailer_list").find("a", "gabtn").attrs["href"];
+}
+
 async function getMovieDetail(movieDetailLinksArr) {
   movieDetailLinksArr = movieDetailLinksArr.map((link) => {
     return link.match(/\/movieinfo_main\/.*/)[0];
@@ -134,6 +138,7 @@ async function getMovieDetail(movieDetailLinksArr) {
   const movieImdbRating = [];
   const movieDirector = [];
   const movieActors = [];
+  const movieTrailers = [];
   for (let i = 0; i < movieDetailLinksArr.length; i++) {
     const SUB_LINK = movieDetailLinksArr[i];
     const sourse = await getMovieHtml(BASE_URL, SUB_LINK);
@@ -147,6 +152,7 @@ async function getMovieDetail(movieDetailLinksArr) {
     const { director, actors } = getMovieDirectorAndActors(soup);
     movieDirector.push(director);
     movieActors.push(actors);
+    movieTrailers.push(getMovieTrailer(soup));
   }
 
   return {
@@ -156,6 +162,7 @@ async function getMovieDetail(movieDetailLinksArr) {
     movieImdbRating,
     movieDirector,
     movieActors,
+    movieTrailers,
   };
 }
 
@@ -172,6 +179,7 @@ function organizeMoives(moviesObj) {
       imdbRating: moviesObj.movieImdbRating[i],
       director: moviesObj.movieDirector[i],
       actors: moviesObj.movieActors[i],
+      trailer: moviesObj.movieTrailers[i],
     });
   }
 
@@ -286,6 +294,7 @@ async function getLatestReleaseDate(SUB_URL, type, pageNumber) {
 }
 
 async function getMoviesNow() {
+
   for (let i = 1; i <= pageNumber; i++) {
     await getMovies(
       BASE_URL,
@@ -298,6 +307,7 @@ async function getMoviesNow() {
   }
 }
 async function getMoviesThisWeek() {
+
   for (let i = 1; i <= pageNumber; i++) {
     console.log(i);
     await getMovies(
@@ -343,8 +353,8 @@ async function getLatestMoviesFromYahoo(SUB_URL, type, pageNumber) {
       releaseDateFromYahoo,
       releaseDateFromDb,
     } = await getLatestReleaseDate(SUB_URL, type, "1");
-    console.log("release", releaseDateFromYahoo, releaseDateFromDb);
-    if (releaseDateFromYahoo <= releaseDateFromDb) {
+    console.log("release",releaseDateFromYahoo);
+    if (releaseDateFromYahoo < releaseDateFromDb) {
       console.log("目前沒有最新電影資料能夠更新");
       return false;
     }
@@ -357,20 +367,10 @@ async function getLatestMoviesFromYahoo(SUB_URL, type, pageNumber) {
         i,
         getMovieIntroduction
       ).then((res) => {
-        return res;
+        console.log(res);
+        return res.filter((movie) => movie.releaseDate > releaseDateFromDb);
       });
-      const movieFromDb = await dbController
-        .getAllMoviesInTheaters()
-        .then((res) => res.map((movie) => movie.name));
-
       console.log(sortedMovies.map((movie) => movie.name));
-      const sortedMoviesArr = sortedMovies.map((movie) => movie.name);
-      const isDuplicate = sortedMoviesArr.filter(
-        (movie) => !movieFromDb.includes(movie)
-      );
-      if (!isDuplicate.length) {
-        console.log("資料庫已存在重覆的電影資料");
-      }
       if (!sortedMovies.length) {
         console.log("目前沒有最新電影資料能夠更新");
         return false;
@@ -391,13 +391,24 @@ async function getLatestMoviesFromYahoo(SUB_URL, type, pageNumber) {
 }
 
 async function getMoviesThisWeekFromYahoo() {
+  // const pageNumberArr = await getPageNumber(
+  //   BASE_URL,
+  //   MOVIE_THISWEEK,
+  //   QUERY_STRING,
+  //   "1"
+  // );
   await getLatestMoviesFromYahoo(MOVIE_THISWEEK, FUTURE, 100);
 }
 
 async function getMoviesInTheatersFromYahoo() {
+  // const pageNumberArr = await getPageNumber(
+  //   BASE_URL,
+  //   MOVIE_INTHEATERS,
+  //   QUERY_STRING,
+  //   "1"
+  // );
   await getLatestMoviesFromYahoo(MOVIE_INTHEATERS, CURRENT, 100);
 }
-
 module.exports = {
   getMoviesThisWeekFromYahoo,
   getMoviesInTheatersFromYahoo,

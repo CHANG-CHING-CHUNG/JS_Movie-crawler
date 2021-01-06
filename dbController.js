@@ -172,6 +172,38 @@ const dbController = {
       await client.close();
     }
   },
+  async findDuplicateRecords() {
+    const client = new MongoClient(url, { useUnifiedTopology: true });
+    try {
+      await client.connect();
+      const db = client.db(dbName);
+      const col = db.collection("movies");
+      const result = await col
+        .aggregate([
+          {
+            $group: {
+              _id: { name: "$name" },
+              uniqueIds: { $addToSet: "$_id" },
+              count: { $sum: 1 },
+            },
+          },
+          {
+            $match: {
+              count: { $gt: 1 },
+            },
+          },
+          {
+            $sort: {
+              count: -1,
+            },
+          },
+        ])
+        .toArray();
+      return result;
+    } finally {
+      await client.close();
+    }
+  },
 };
 
 module.exports = dbController;
