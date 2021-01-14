@@ -108,6 +108,22 @@ const dbController = {
       await client.close();
     }
   },
+  async getAllMoviesThisweek() {
+    const client = new MongoClient(url, { useUnifiedTopology: true });
+    try {
+      await client.connect();
+      const db = client.db(dbName);
+      const col = db.collection("movies_thisweek");
+      const cursor = col.find();
+      // print a message if no documents were found
+      if ((await cursor.count()) === 0) {
+        console.log("No documents found!");
+      }
+      return await cursor.toArray();
+    } finally {
+      await client.close();
+    }
+  },
   async getOneLatestMovie(type) {
     const client = new MongoClient(url, { useUnifiedTopology: true });
     try {

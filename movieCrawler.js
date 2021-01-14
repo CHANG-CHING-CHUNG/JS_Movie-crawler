@@ -172,6 +172,8 @@ function organizeMoives(moviesObj) {
       imdbRating: moviesObj.movieImdbRating[i],
       director: moviesObj.movieDirector[i],
       actors: moviesObj.movieActors[i],
+      trailer: "",
+      thumbnails: "",
     });
   }
 
@@ -359,9 +361,16 @@ async function getLatestMoviesFromYahoo(SUB_URL, type, pageNumber) {
       ).then((res) => {
         return res;
       });
-      const movieFromDb = await dbController
-        .getAllMoviesInTheaters()
-        .then((res) => res.map((movie) => movie.name));
+      const movieFromDb =
+        type === "current"
+          ? await dbController
+              .getAllMoviesInTheaters()
+              .then((res) => res.map((movie) => movie.name))
+          : type === "future"
+          ? await dbController
+              .getAllMoviesThisweek()
+              .then((res) => res.map((movie) => movie.name))
+          : null;
 
       console.log(sortedMovies.map((movie) => movie.name));
       const sortedMoviesArr = sortedMovies.map((movie) => movie.name);

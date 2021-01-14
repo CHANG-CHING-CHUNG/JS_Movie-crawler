@@ -7,7 +7,11 @@ const {
 console.log("每天23:00定時抓電影資料排程已啟動...");
 cron.schedule("00 23 * * *", async () => {
   console.log("抓電影開始");
-  await getMoviesThisWeekFromYahoo();
-  await getMoviesInTheatersFromYahoo();
+  runTasks();
   console.log("抓電影結束");
 });
+
+async function runTasks() {
+  await getMoviesThisWeekFromYahoo();
+  await getMoviesInTheatersFromYahoo();
+}
