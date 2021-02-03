@@ -108,6 +108,23 @@ const dbController = {
       await client.close();
     }
   },
+  async getMovieByName(movieName, collectionName) {
+    const client = new MongoClient(url, { useUnifiedTopology: true });
+    try {
+      await client.connect();
+      const db = client.db(dbName);
+      const col = db.collection(collectionName);
+      const query = { name: movieName };
+      const options = {
+        projection: { _id: 0, name: 1 },
+      };
+      const movie = await col.findOne(query, options);
+      // console.log(movie);
+      return movie;
+    } finally {
+      await client.close();
+    }
+  },
   async getAllMoviesThisweek() {
     const client = new MongoClient(url, { useUnifiedTopology: true });
     try {
@@ -188,12 +205,12 @@ const dbController = {
       await client.close();
     }
   },
-  async findDuplicateRecords() {
+  async findDuplicateRecords(collectionName) {
     const client = new MongoClient(url, { useUnifiedTopology: true });
     try {
       await client.connect();
       const db = client.db(dbName);
-      const col = db.collection("movies");
+      const col = db.collection(collectionName);
       const result = await col
         .aggregate([
           {
@@ -215,6 +232,27 @@ const dbController = {
           },
         ])
         .toArray();
+      return result;
+    } finally {
+      await client.close();
+    }
+  },
+  async deleteDuplicateRecord(DupilicateList, collectionName) {
+    const client = new MongoClient(url, { useUnifiedTopology: true });
+    try {
+      await client.connect();
+      const db = client.db(dbName);
+      const col = db.collection(collectionName);
+      let result;
+      for (let i = 0; i < DupilicateList.length; i++) {
+        result = await col.deleteOne({ name: DupilicateList[i] });
+        if (result.deletedCount === 1) {
+          console.log("Successfully deleted one document.");
+        } else {
+          console.log("No documents matched the query. Deleted 0 documents");
+        }
+      }
+
       return result;
     } finally {
       await client.close();

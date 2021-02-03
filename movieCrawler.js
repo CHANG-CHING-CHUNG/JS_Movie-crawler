@@ -253,105 +253,18 @@ async function getMovies(
   return Promise.resolve(movies);
 }
 
-async function getSingleLatestMovie(
-  BASE_URL,
-  SUB_URL,
-  QUERY_STRING,
-  pageNumber,
-  callBack
-) {
-  const result = await getMovies(
-    BASE_URL,
-    SUB_URL,
-    QUERY_STRING,
-    pageNumber,
-    callBack
-  ).then((res) => {
-    return res;
-  });
-  return result.sort((a, b) => a.releaseDate < b.releaseDate)[0];
-}
-
-async function getLatestReleaseDate(SUB_URL, type, pageNumber) {
-  const latestMovie = await getSingleLatestMovie(
-    BASE_URL,
-    SUB_URL,
-    QUERY_STRING,
-    pageNumber,
-    getMovieIntroduction
-  );
-  const dbLatestMovie = await dbController.getOneLatestMovie(type);
-  return {
-    releaseDateFromYahoo: latestMovie.releaseDate,
-    releaseDateFromDb: dbLatestMovie[0].releaseDate,
-  };
-}
-
-async function getMoviesNow() {
-  for (let i = 1; i <= pageNumber; i++) {
-    await getMovies(
-      BASE_URL,
-      MOVIE_INTHEATERS,
-      QUERY_STRING,
-      i,
-      getMovieIntroduction
-    ).then((res) => dbController.insertMovieInTheatersToDB(res));
-    console.log(i);
-  }
-}
-async function getMoviesThisWeek() {
-  for (let i = 1; i <= pageNumber; i++) {
-    console.log(i);
-    await getMovies(
-      BASE_URL,
-      MOVIE_THISWEEK,
-      QUERY_STRING,
-      i,
-      getMovieIntroduction
-    ).then((res) => dbController.insertMovieThisWeekToDB(res));
-  }
-}
-
-async function shouldUpdateMovie(SUB_URL, type, pageNumber) {
-  const latestMovies = await getMovies(
-    BASE_URL,
-    SUB_URL,
-    QUERY_STRING,
-    pageNumber,
-    getMovieIntroduction
-  ).then((res) => res.map((movie) => movie.name));
-  const dbLatestMoviesInTheaters =
-    type === "current"
-      ? await dbController
-          .getLatestTenMoviesInTheaters()
-          .then((res) => res.map((movie) => movie.name))
-      : type === "future"
-      ? await dbController
-          .getLatestTenMoviesThisWeek()
-          .then((res) => res.map((movie) => movie.name))
-      : [];
-  const result = latestMovies.filter((movie) => {
-    return !dbLatestMoviesInTheaters.includes(movie);
-  });
-
-  return result.length ? true : false;
-}
-
 async function getLatestMoviesFromYahoo(SUB_URL, type, pageNumber) {
-  console.log(SUB_URL, type, pageNumber);
-  if (!(await shouldUpdateMovie(SUB_URL, type, "1"))) return;
+  let pageNumberCounter = 0;
+  let collectionName;
+  if (type === "current") {
+    collectionName = "movies";
+  } else if (type === "future") {
+    collectionName = "movies_thisweek";
+  }
+  console.log("Line 341 ", SUB_URL, type, pageNumber);
   try {
-    const {
-      releaseDateFromYahoo,
-      releaseDateFromDb,
-    } = await getLatestReleaseDate(SUB_URL, type, "1");
-    console.log("release", releaseDateFromYahoo, releaseDateFromDb);
-    if (releaseDateFromYahoo <= releaseDateFromDb) {
-      console.log("目前沒有最新電影資料能夠更新");
-      return false;
-    }
     for (let i = 1; i <= pageNumber; i++) {
-      console.log(SUB_URL, "page", i);
+      console.log("Line 344 ", SUB_URL, "page", i);
       const sortedMovies = await getMovies(
         BASE_URL,
         SUB_URL,
@@ -361,37 +274,46 @@ async function getLatestMoviesFromYahoo(SUB_URL, type, pageNumber) {
       ).then((res) => {
         return res;
       });
-      const movieFromDb =
-        type === "current"
-          ? await dbController
-              .getAllMoviesInTheaters()
-              .then((res) => res.map((movie) => movie.name))
-          : type === "future"
-          ? await dbController
-              .getAllMoviesThisweek()
-              .then((res) => res.map((movie) => movie.name))
-          : null;
 
-      console.log(sortedMovies.map((movie) => movie.name));
-      const sortedMoviesArr = sortedMovies.map((movie) => movie.name);
-      const isDuplicate = sortedMoviesArr.filter(
-        (movie) => !movieFromDb.includes(movie)
+      let counter = 0;
+      const newSortedMovies = [];
+      for (let k = 0; k < sortedMovies.length; k++) {
+        const movieFromDb = await dbController.getMovieByName(
+          sortedMovies[k].name,
+          "movies"
+        );
+        console.log(movieFromDb);
+        if (movieFromDb != null && sortedMovies[k].name === movieFromDb.name) {
+          console.log(`該電影 ${sortedMovies[k].name}已存在於資料庫了!`);
+        } else {
+          newSortedMovies.push(sortedMovies[k]);
+          console.log(`資料庫並無電影 ${sortedMovies[k].name}`);
+          console.log(`將電影 ${sortedMovies[k].name} 加入資料庫`);
+          counter++;
+        }
+      }
+      console.log("Line 371 newSortedMovies array");
+      console.log(
+        "counter " +
+          counter +
+          " newSortedMovies.length " +
+          newSortedMovies.length
       );
-      if (!isDuplicate.length) {
-        console.log("資料庫已存在重覆的電影資料");
+
+      if (newSortedMovies.length) {
+        const result =
+          type === "current"
+            ? await dbController.insertMovieInTheatersToDB(newSortedMovies)
+            : type === "future"
+            ? await dbController.insertMovieThisWeekToDB(newSortedMovies)
+            : null;
+        pageNumberCounter = 0;
+      } else {
+        console.log("沒有電影要被加入到資料庫");
+        pageNumberCounter++;
       }
-      if (!sortedMovies.length) {
-        console.log("目前沒有最新電影資料能夠更新");
-        return false;
-      }
-      let result =
-        type === "current"
-          ? await dbController.insertMovieInTheatersToDB(sortedMovies)
-          : type === "future"
-          ? await dbController.insertMovieThisWeekToDB(sortedMovies)
-          : null;
-      if (result === null) {
-        return false;
+      if (pageNumberCounter === 3) {
+        return;
       }
     }
   } catch (error) {

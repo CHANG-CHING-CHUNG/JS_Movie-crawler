@@ -4,4 +4,11 @@ const dbController = require("./dbController");
 //   .getAllMoviesInTheaters()
 //   .then((res) => console.log(res.map((movie) => movie.name)));
 
-dbController.findDuplicateRecords().then((res) => console.log(res));
+dbController.findDuplicateRecords("movies_thisweek").then((res) => {
+  console.log(res);
+  const movieNameList = res.map((item) => {
+    return item._id.name;
+  });
+  console.log(movieNameList);
+  dbController.deleteDuplicateRecord(movieNameList, "movies");
+});
